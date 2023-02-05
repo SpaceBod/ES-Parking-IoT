@@ -1,0 +1,136 @@
+{
+  "Header": {
+    "title": "Smart Parking",
+    "paragraph": "Showcasing real-time availability of parking spots online for enhanced convenience and efficiency."
+  },
+  "About": {
+    "paragraph1": "This product, a smart parking solution, uses cutting-edge technology to enhance the efficiency and convenience of parking management.",
+    "paragraph2": "By utilising sensors, automatic number plate recognition, and real-time data analysis, this product is able to monitor the availability of parking spots in real-time and provide this information to users through online platforms or mobile applications.",
+    "Why": [
+      "Innovative Technology",
+      "Real-time Parking Availability",
+      "Increased Parking Efficiency"
+    ],
+    "Why2": [
+      "User-friendly Experience",
+      "Cost Effective Solutions",
+      "Improved Parking Experience"
+    ]
+  },
+  "Gallery": [
+    {
+      "title": "Project Title",
+      "largeImage": "img/portfolio/01-large.jpg",
+      "smallImage": "img/portfolio/01-small.jpg"
+    },
+    {
+      "title": "Project Title",
+      "largeImage": "img/portfolio/02-large.jpg",
+      "smallImage": "img/portfolio/02-small.jpg"
+    },
+    {
+      "title": "Project Title",
+      "largeImage": "img/portfolio/03-large.jpg",
+      "smallImage": "img/portfolio/03-small.jpg"
+    },
+    {
+      "title": "Project Title",
+      "largeImage": "img/portfolio/04-large.jpg",
+      "smallImage": "img/portfolio/04-small.jpg"
+    },
+    {
+      "title": "Project Title",
+      "largeImage": "img/portfolio/05-large.jpg",
+      "smallImage": "img/portfolio/05-small.jpg"
+    },
+    {
+      "title": "Project Title",
+      "largeImage": "img/portfolio/06-large.jpg",
+      "smallImage": "img/portfolio/06-small.jpg"
+    }
+  ],
+  "Services": [
+    {
+      "icon": "fa fa-wordpress",
+      "name": "Lorem ipsum dolor",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sed dapibus leo nec ornare diam sedasd commodo nibh ante facilisis bibendum dolor feugiat at."
+    },
+    {
+      "icon": "fa fa-cart-arrow-down",
+      "name": "Consectetur adipiscing",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sed dapibus leo nec ornare diam sedasd commodo nibh ante facilisis bibendum dolor feugiat at."
+    },
+    {
+      "icon": "fa fa-cloud-download",
+      "name": "Lorem ipsum dolor",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sed dapibus leo nec ornare diam sedasd commodo nibh ante facilisis bibendum dolor feugiat at."
+    },
+    {
+      "icon": "fa fa-language",
+      "name": "Consectetur adipiscing",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sed dapibus leo nec ornare diam sedasd commodo nibh ante facilisis bibendum dolor feugiat at."
+    },
+    {
+      "icon": "fa fa-plane",
+      "name": "Lorem ipsum dolor",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sed dapibus leo nec ornare diam sedasd commodo nibh ante facilisis bibendum dolor feugiat at."
+    },
+    {
+      "icon": "fa fa-pie-chart",
+      "name": "Consectetur adipiscing",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sed dapibus leo nec ornare diam sedasd commodo nibh ante facilisis bibendum dolor feugiat at."
+    }
+  ],
+  "Team": [
+    {
+      "img": "img/team/01.jpg",
+      "name": "Sian, S",
+      "job": "Developer"
+    },
+    {
+      "img": "img/team/02.jpg",
+      "name": "Cai, X",
+      "job": "Developer"
+    },
+    {
+      "img": "img/team/03.jpg",
+      "name": "Wang, J",
+      "job": "Developer"
+    },
+    {
+      "img": "img/team/04.jpg",
+      "name": "Fenocchi, G",
+      "job": "Developer"
+    }
+  ],
+  "Contact": {
+    "address": "South Kensington Campus, London SW7 2AZ, UK",
+    "phone": "+44 (0)20 7589 5111",
+    "email": "info@company.com",
+    "facebook": "https://www.facebook.com/imperialcollegelondon",
+    "twitter": "https://twitter.com/imperialcollege",
+    "youtube": "https://www.youtube.com/user/imperialcollegevideo"
+  },
+  "Features": [
+    {
+      "icon": "fa fa-rss-square",
+      "title": "ID Card System",
+      "text": "RFID scanning for efficient user entry and exit tracking."
+    },
+    {
+      "icon": "fa fa-bar-chart",
+      "title": "Monitoring",
+      "text": "An online viewer for convenient monitoring of parking spot availability and parking statistics."
+    },
+    {
+      "icon": "fa  fa-map-marker",
+      "title": "Recommendations",
+      "text": "Recommendation of parking spots for optimized parking experience."
+    },
+    {
+      "icon": "fa fa-camera",
+      "title": "ANPR",
+      "text": "Automatic number plate recognition for quick and accurate vehicle identification."
+    }
+  ]
+}
