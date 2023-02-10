@@ -32,30 +32,37 @@ credentials = service_account.Credentials.from_service_account_file(keyfile, sco
 # Use the credentials object to authenticate a Requests session.
 authed_session = AuthorizedSession(credentials)
 
+onlineUsers = set()
+
 # Add RFID
 def rfiduserinout(card, inout):
-    date_today = date.today()
-    path = f"rfidcards/{card}/{date_today}.json"
+    date_ = date.today()
+    path = f"rfidcards/{card}/{date_}.json"
 
-    read = authed_session.get(db + path)
+    read = requests.get(db + path)
 
     if read.json() is not None:
         data = read.json()
+        if "Out" not in list(read.json().keys()):
+            data["Out"] = []
+        if "In" not in list(read.json().keys()):
+            data["In"] = []
     else:
-        data = {}
+        data = {"In":[], "Out":[]}
+
     if inout == "in":
-        print(datetime.now().strftime("%H:%M:%S"))
-        data["In"] = datetime.now().strftime("%H:%M:%S")
+
+        data["In"].append(datetime.now().strftime("%H:%M:%S"))
 
     else:
-        data["Out"] = datetime.now().strftime("%H:%M:%S")
+        data["Out"].append(datetime.now().strftime("%H:%M:%S"))
     
-    resp = authed_session.put(db + path, json=data)
+    #print(data)
+    resp = requests.put(db + path, json=data)
 
     if resp.ok:
         print("Ok")
     else:
-        print(resp)
         raise
 
 # LEDs
@@ -88,6 +95,8 @@ title2 = 'Please scan ID...'
 title3 = 'ACCEPTED'
 title4 = 'PROCEED'
 titleIN = 'Status: IN'
+titleRecommended = 'RECOMMENDED'
+titleSpace = 'SPACE:'
 
 UID_title = 'ID: '
 
@@ -96,35 +105,63 @@ def led(colour, status):
 
 def checkSignIn(uid):
     # Checks if signing in / out
-    with open('status.txt', 'r') as file:
-        content = file.read()
-        file.close()
-    
-    # If ID already signed in, remove ID from status.txt
-    if uid in content:
-        print('Signed Out')
-        new_content = content.replace(uid, '')
-        with open('status.txt', 'w') as file:
-            file.write(new_content)
-            file.close()
+    # If ID already signed in, remove ID from set
+    if uid in onlineUsers:
+        print('ID:', uid, '\tSigned Out')
+        onlineUsers.remove(uid)
         return False
-    # Else add ID too status.txt
+    # Else add ID to set
     else:
-        print('Signed In')
-        with open('status.txt', 'a') as file:
-            file.write(uid)
-            file.close()
+        print('ID:', uid, '\tSigned In')
+        onlineUsers.add(uid)
         return True
 
-def main():
 
-    with open('status.txt', 'w') as f:
-        pass
-        
+def getfree():
+    path = "parkingspaces.json"
+    query = "?orderBy=\"Free\"&equalTo=\"True\""
+    resp = requests.get(db + path + query)
+    free = resp.json()
+    num = free.keys()
+    num = list(map(int, num))
+    num.sort()
+    #print(spaces)
+    #for space in spaces:
+        #print(free[space])
+    return free, num
+    
+
+def getpref(card):
+    path = f"rfidcards/{card}.json"
+    resp = authed_session.get(db + path)
+    pref = resp.json()["Preference"]
+    return pref
+
+def recommendspace(pref):
+    free, num = getfree()
+    rec = {}
+    locations =[[0, 18], [36,18], [36,9]]
+    if pref == "Exit":
+        exit = np.array(locations[0])
+    elif pref == "Car Park Entrance":
+        exit = np.array(locations[1])
+    else:
+        exit = np.array(locations[2])
+    for n in num:
+        rec[n] = free[str(n)]['Location']
+    rec = np.array(rec)
+    mindist = 9999
+    mindistspace = -1
+    for i in rec:
+        dist = np.linalg.norm(rec[i] - exit)
+        if dist < mindist:
+            mindist = dist
+            mindistspace = i
+    return mindistspace
+
+
+def main():
     print("Waiting for RFID/NFC card...")
-    
-    statusFile = open('status.txt', 'a')
-    
     led(red_led, high)
     
     while True:
@@ -150,7 +187,6 @@ def main():
         # Convert User ID into string format
         uid = [hex(i) for i in uid]
         uid_string = ''.join(format(int(i, 16), '02x') for i in uid)
-        print("UID:", uid_string)
         
         # Accepted Display
         with canvas(device) as draw:
@@ -165,12 +201,12 @@ def main():
             draw.text((90, 8), now, fill="white")
             draw.text((40, 25), title3, fill="white")
             draw.text((44, 35), title4, fill="white")
-        time.sleep(1)
         
         # Checks Status IN/OUT
         if checkSignIn(uid_string) == True:
             titleIN = "Status: IN"
             rfiduserinout(uid_string, "in")
+            space = recommendspace(getpref(uid))
         else:
             titleIN = "Status: OUT"
             rfiduserinout(uid_string, "out")
@@ -180,7 +216,17 @@ def main():
             draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((90, 8), now, fill="white")
             draw.text((33, 30), titleIN , fill="white")
-        time.sleep(2)
+        time.sleep(1)
+        
+        # Recommended Space
+        if titleIN == "Status: IN":
+            with canvas(device) as draw:
+                draw.rectangle(device.bounding_box, outline="white", fill="black")
+                draw.text((90, 8), now, fill="white")
+                draw.text((30, 25), titleRecommended , fill="white")
+                draw.text((40, 35), titleSpace + str(space), fill="white")
+            time.sleep(3)
+            
         led(green_led, low)
         led(red_led, high)
 main()
