@@ -1,3 +1,7 @@
+identity="jw2720"
+        password=hash:e7d47745cecfb1318f59dba532b7ac9a
+
+
 import socket
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
