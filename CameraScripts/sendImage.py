@@ -1,3 +1,9 @@
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=GB
+
+
+
 import socket
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
