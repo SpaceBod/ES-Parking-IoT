@@ -13,6 +13,18 @@ import requests
 import numpy as np
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
+from picamera import PiCamera
+from RPi import GPIO
+import socket
+
+#camera settings
+camera = PiCamera()
+#camera.brightness = 55
+camera.awb_mode = 'incandescent' 
+camera.iso = 200
+camera.contrast = 70
+camera.shutter_speed = 6000 # 0.006 seconds
+camera.exposure_mode = 'off'
 
 # DB
 db = "https://embedded-systems-cf93d-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -161,10 +173,18 @@ def recommendspace(pref):
 
 
 def main():
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("client socket")
+    client.connect(('172.20.10.6', 1003))
+    print("connected")
+    
+    
     print("Waiting for RFID/NFC card...")
     led(red_led, high)
     
     while True:
+        image_number = 0
+        
         now = datetime.now().strftime("%H:%M")
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")
@@ -225,7 +245,20 @@ def main():
                 draw.text((90, 8), now, fill="white")
                 draw.text((30, 25), titleRecommended , fill="white")
                 draw.text((40, 35), titleSpace + str(space), fill="white")
-            time.sleep(3)
+            
+            camera.capture("/home/pi/python/pictures/{}.jpg".format(image_number))
+            time.sleep(0.5)
+            
+            file = open('/home/pi/python/pictures/{}.jpg'.format(image_number), 'rb')
+            image_data = file.read()
+
+            while image_data:
+                client.sendall(image_data)
+                #image_data = file.read()
+
+            file.close()
+   #         client.close()
+            image_number += 1
             
         led(green_led, low)
         led(red_led, high)
