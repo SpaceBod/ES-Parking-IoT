@@ -1,16 +1,21 @@
 import socket
+import time
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print("client socket")
-client.connect(('172.20.10.6', 1003))
+ip = '146.169.178.115'
+port = 1003
 
-print("connected")
-file = open('/home/pi/python/pictures/img.jpg', 'rb')
-image_data = file.read(2048)
-
-while image_data:
-    client.send(image_data)
+def sendImage(ipAddress, portNum, img):
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect((ipAddress, portNum))
+    print("Sending")
+    image_name = img
+    client.send(image_name.encode())
+    file = open(image_name, 'rb')
     image_data = file.read(2048)
+    while image_data:
+        client.send(image_data)
+        image_data = file.read(2048)
+    file.close()
+    client.close()
 
-file.close()
-client.close()
+sendImage(ip, port, '/Users/admin/Desktop/piServer/img/img2.jpg')
