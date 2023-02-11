@@ -7,24 +7,18 @@ from luma.core.render import canvas
 from luma.oled.device import sh1106
 from adafruit_pn532.i2c import PN532_I2C
 import time
+import socket
 from datetime import datetime, date
 import json
 import requests
 import numpy as np
+from picamera import PiCamera
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
-from picamera import PiCamera
-from RPi import GPIO
-import socket
 
-#camera settings
-camera = PiCamera()
-#camera.brightness = 55
-camera.awb_mode = 'incandescent' 
-camera.iso = 200
-camera.contrast = 70
-camera.shutter_speed = 6000 # 0.006 seconds
-camera.exposure_mode = 'off'
+# ANPR Server
+ip = '146.169.178.115'
+port = 1003
 
 # DB
 db = "https://embedded-systems-cf93d-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -46,10 +40,19 @@ authed_session = AuthorizedSession(credentials)
 
 onlineUsers = set()
 
+
+camera = PiCamera()
+
+senddate = 0
+endtime = 0
+
 # Add RFID
 def rfiduserinout(card, inout):
-    date_ = date.today()
-    path = f"rfidcards/{card}/{date_}.json"
+    global senddate 
+    senddate = date.today()
+    global sendtime 
+    sendtime = datetime.now().strftime("%H:%M:%S")
+    path = f"rfidcards/{card}/{senddate}.json"
 
     read = requests.get(db + path)
 
@@ -59,15 +62,19 @@ def rfiduserinout(card, inout):
             data["Out"] = []
         if "In" not in list(read.json().keys()):
             data["In"] = []
+            
+            
     else:
         data = {"In":[], "Out":[]}
-
+	
+	
+	
     if inout == "in":
-
-        data["In"].append(datetime.now().strftime("%H:%M:%S"))
+    	
+        data["In"].append(sendtime)
 
     else:
-        data["Out"].append(datetime.now().strftime("%H:%M:%S"))
+        data["Out"].append(sendtime)
     
     #print(data)
     resp = requests.put(db + path, json=data)
@@ -112,6 +119,31 @@ titleSpace = 'SPACE:'
 
 UID_title = 'ID: '
 
+def takePicture(uid):
+    camera.capture("pictures/{}_{}_{}.jpg".format(uid, senddate, sendtime))
+    print("IMG Taken.")
+     
+
+def ANPR(uid):
+    takePicture(uid)
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect((ip, port))
+    print("Sending")
+    
+    image_name = "pictures/{}_{}_{}.jpg".format(uid, senddate, sendtime)
+    client.send(image_name.encode())
+    file = open(image_name, 'rb')
+    image_data = file.read(2048)
+    
+    while image_data:
+        client.send(image_data)
+        image_data = file.read(2048)
+    
+        
+    file.close()
+
+    client.close()
+
 def led(colour, status):
     GPIO.output(colour, status)
 
@@ -129,29 +161,35 @@ def checkSignIn(uid):
         return True
 
 
-def getfree():
+def getfreetype(type_):
     path = "parkingspaces.json"
     query = "?orderBy=\"Free\"&equalTo=\"True\""
-    resp = requests.get(db + path + query)
+    resp = requests.get(db+path+query)
     free = resp.json()
-    num = free.keys()
-    num = list(map(int, num))
-    num.sort()
-    #print(spaces)
-    #for space in spaces:
-        #print(free[space])
-    return free, num
+    filtered = {}
+    for space in free:
+        if free[space]["Type"] == type_:
+            filtered[space] = free[space]["Location"]
+    return filtered
     
 
-def getpref(card):
-    path = f"rfidcards/{card}.json"
-    resp = authed_session.get(db + path)
-    pref = resp.json()["Preference"]
-    return pref
+def getpreftype(card):
+    prefpath = f"rfidcards/{card}/Preference.json"
+    prefresp = authed_session.get(db + prefpath)
+    pref = prefresp.json()
+    if pref is None:
+        pref = "Exit"
+    typepath = f"rfidcards/{card}/Type.json"
+    typeresp = authed_session.get(db + typepath)
+    type_ = typeresp.json()
+    if type_ is None:
+        type_ = "Normal"
+    return pref, type_
 
-def recommendspace(pref):
-    free, num = getfree()
-    rec = {}
+
+def recommendspace(pref, type_):
+    spaces = getfreetype(type_)
+
     locations =[[0, 18], [36,18], [36,9]]
     if pref == "Exit":
         exit = np.array(locations[0])
@@ -159,32 +197,24 @@ def recommendspace(pref):
         exit = np.array(locations[1])
     else:
         exit = np.array(locations[2])
-    for n in num:
-        rec[n] = free[str(n)]['Location']
-    rec = np.array(rec)
+
     mindist = 9999
     mindistspace = -1
-    for i in rec:
-        dist = np.linalg.norm(rec[i] - exit)
+    nums = list(spaces.keys())
+
+    for num in nums:
+        dist = np.linalg.norm(np.array(spaces[num]) - exit)
         if dist < mindist:
             mindist = dist
-            mindistspace = i
+            mindistspace = num
     return mindistspace
 
 
 def main():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print("client socket")
-    client.connect(('172.20.10.6', 1003))
-    print("connected")
-    
-    
     print("Waiting for RFID/NFC card...")
     led(red_led, high)
     
     while True:
-        image_number = 0
-        
         now = datetime.now().strftime("%H:%M")
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")
@@ -226,7 +256,8 @@ def main():
         if checkSignIn(uid_string) == True:
             titleIN = "Status: IN"
             rfiduserinout(uid_string, "in")
-            space = recommendspace(getpref(uid))
+            pref, type_ = getpreftype(uid_string)
+            space = recommendspace(pref, type_)
         else:
             titleIN = "Status: OUT"
             rfiduserinout(uid_string, "out")
@@ -246,19 +277,8 @@ def main():
                 draw.text((30, 25), titleRecommended , fill="white")
                 draw.text((40, 35), titleSpace + str(space), fill="white")
             
-            camera.capture("/home/pi/python/pictures/{}.jpg".format(image_number))
-            time.sleep(0.5)
-            
-            file = open('/home/pi/python/pictures/{}.jpg'.format(image_number), 'rb')
-            image_data = file.read()
-
-            while image_data:
-                client.sendall(image_data)
-                #image_data = file.read()
-
-            file.close()
-   #         client.close()
-            image_number += 1
+            ANPR(uid_string)
+            time.sleep(2)
             
         led(green_led, low)
         led(red_led, high)
