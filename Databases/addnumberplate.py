@@ -1,5 +1,5 @@
 import re
-
+#  pip3 install google-auth
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
 db = "https://embedded-systems-cf93d-default-rtdb.europe-west1.firebasedatabase.app/"
