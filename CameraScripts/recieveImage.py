@@ -1,17 +1,38 @@
 import socket
+import os
+
+dir = "/Users/admin/Desktop/piServer/"
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('172.20.10.6', 1003))
-print(server)
+server.bind(('146.169.178.115', 1003))
+print("Listening")
 server.listen()
 
-client_socket, client_address = server.accept()
+while True:
 
-file = open('server_image.jpg', "wb")
-image_chunk = client_socket.recv(2048)
+    try:
+        client_socket, client_address = server.accept()
+        print("Img Received")
+        image_name = client_socket.recv(1024).decode()
+        path = os.path.basename(image_name)
+        print(path)
+        file = open(dir + path, "wb")
+        image_chunk = client_socket.recv(2048)
+        
+        while image_chunk:
+            file.write(image_chunk)
+            image_chunk = client_socket.recv(2048)
+            
+        file.close()
+        
+        print("file closed")
+        encodedMessage = bytes("hello back", 'utf-8')
+        # send the data via the socket to the server
+        client_socket.send(encodedMessage)
+        print("sent back")
 
-while image_chunk:
-	file.write(image_chunk)
-	image_chunk = client_socket.recv(2048)
-file.close()
-client_socket.close()
+    except KeyboardInterrupt:
+        if client_socket:
+            print("Socket Closed")
+            client_socket.close()
+        break
