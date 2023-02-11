@@ -26,10 +26,7 @@ while True:
         file.close()
         
         print("file closed")
-        encodedMessage = bytes("hello back", 'utf-8')
-        # send the data via the socket to the server
-        client_socket.send(encodedMessage)
-        print("sent back")
+    
 
     except KeyboardInterrupt:
         if client_socket:
