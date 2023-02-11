@@ -1,4 +1,4 @@
-def addnumberplate(filename):
+def addnumberplate(filename, numberplate):
     
     filename = filename[:-4] #take out .jpg
     split = filename.split('_')
@@ -13,7 +13,7 @@ def addnumberplate(filename):
     for num, item in enumerate(resp):
 
         if item == time:
-            resp[num] = item+"_"+"AB12ABC"
+            resp[num] = item+"_"+numberplate
 
     update = {}
     for i, obj in enumerate(resp):
@@ -30,4 +30,4 @@ def addnumberplate(filename):
 
 
 #Need the filename to be in this format: rfidnumber_date_time.jpg
-#just call function with that filename as input
+#just call function with that filename and numberplate as input
