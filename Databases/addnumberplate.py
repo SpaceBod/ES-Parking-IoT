@@ -1,3 +1,5 @@
+import re
+
 def addnumberplate(filename, numberplate):
     
     filename = filename[:-4] #take out .jpg
