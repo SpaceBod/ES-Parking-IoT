@@ -5,6 +5,7 @@ def addnumberplate(filename):
     rfid = split[0]
     date = split[1]
     time = split[2]
+    time = re.sub("/",":",time)
     path = "rfidcards/{}/{}/In/.json".format(rfid,date)
     resp = requests.get(db+path)
     resp = resp.json()
