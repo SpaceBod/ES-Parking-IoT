@@ -3,33 +3,48 @@ import socket
 import os
 import time
 
-dir = "J:"
+dir = "J://image_receive_test/"
 
-folder = "J:"
+folder = "J://image_receive_test/"
 
 def receive_image():
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	server.bind(('146.169.194.185', 1003))
+	server.bind(('192.168.0.58', 1003))
 	server.listen()
-	print("Listening")
-	client_socket, client_address = server.accept()
 
 	while True:
 		try:
-			print("Img Received")
-			image_name = client_socket.recv(1024).decode()
+			print("Listening")
+			client_socket, client_address = server.accept()
+			print("Receiving")
+			image_name = client_socket.recv(1024).decode('latin-1')
 			path = os.path.basename(image_name)
 			print(path)
-			file = open(dir + path, "wb")
-			image_chunk = client_socket.recv(2048)
+			with open(dir + path, 'wb') as f:
+				while True:
+					data = client_socket.recv(1024)
+					if not data:
+						break
+					f.write(data)
 
-			while image_chunk:
-				file.write(image_chunk)
-				image_chunk = client_socket.recv(2048)
+			client_socket.close()
+			print('socket closed')
+			# image_name = client_socket.recv(1024).decode()
+			# print("Img Received")
+			# path = os.path.basename(image_name)
+			# print(path)
+			# file = open(dir + path, "wb")
+			# image_chunk = client_socket.recv(2048)
+			#
+			# while image_chunk:
+			# 	file.write(image_chunk)
+			# 	image_chunk = client_socket.recv(2048)
+			#
+			# file.close()
+			#
+			# print("file closed")
 
-			file.close()
 
-			print("file closed")
 			#encodedMessage = bytes("hello back", 'utf-8')
 			# send the data via the socket to the server
 			#client_socket.send(encodedMessage)
@@ -41,15 +56,16 @@ def receive_image():
 				client_socket.close()
 			break
 
+
 def check_new_files():
 	before = set(os.listdir(folder))
 	while True:
-		#time.sleep(5)
+		time.sleep(5)
 		after = set(os.listdir(folder))
 		new_files = after - before
 		if new_files:
 			for new_file in new_files:
-				print("New file：", new_file)  #change this line to OCR afterwards
+				print("New file：", new_file)  #这里改成调用OCR
 				time.sleep(5)
 			before = after
 
