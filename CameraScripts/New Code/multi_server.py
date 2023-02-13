@@ -47,10 +47,9 @@ def loadANPR():
             shutil.move(plateIMG, os.path.join(folder_name, imgFile))
         
         else:
-            print("Waiting for images...)
+            print("Waiting for images...")
             time.sleep(1)
-    
-    
+
 if __name__ == "__main__":
     p1 = Process(target=runServer)
     p2 = Process(target=loadANPR)
