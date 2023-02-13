@@ -15,9 +15,11 @@ import numpy as np
 from picamera import PiCamera
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
+import os
+import re
 
 # ANPR Server
-ip = '146.169.178.115'
+ip = '146.169.169.71'
 port = 1003
 
 # DB
@@ -44,13 +46,20 @@ onlineUsers = set()
 camera = PiCamera()
 
 senddate = 0
-endtime = 0
+sendtime = 0
+
+url = "http://146.169.169.71:1004/upload"
+imgDir = "/pictures"
+# Create a socket object
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Bind to the port
+s.bind(("146.169.137.152", 1050)) #ip of pi
 
 # Add RFID
 def rfiduserinout(card, inout):
-    global senddate 
+    global senddate
     senddate = date.today()
-    global sendtime 
+    global sendtime
     sendtime = datetime.now().strftime("%H:%M:%S")
     path = f"rfidcards/{card}/{senddate}.json"
 
@@ -62,20 +71,20 @@ def rfiduserinout(card, inout):
             data["Out"] = []
         if "In" not in list(read.json().keys()):
             data["In"] = []
-            
-            
+
+
     else:
         data = {"In":[], "Out":[]}
-	
-	
-	
+
+
+
     if inout == "in":
-    	
+
         data["In"].append(sendtime)
 
     else:
         data["Out"].append(sendtime)
-    
+
     #print(data)
     resp = requests.put(db + path, json=data)
 
@@ -120,29 +129,25 @@ titleSpace = 'SPACE:'
 UID_title = 'ID: '
 
 def takePicture(uid):
+    global senddate
+    global sendtime
+    sendtime = re.sub(":", "t", sendtime)
+
     camera.capture("pictures/{}_{}_{}.jpg".format(uid, senddate, sendtime))
     print("IMG Taken.")
-     
+
 
 def ANPR(uid):
     takePicture(uid)
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((ip, port))
-    print("Sending")
-    
-    image_name = "pictures/{}_{}_{}.jpg".format(uid, senddate, sendtime)
-    client.send(image_name.encode())
-    file = open(image_name, 'rb')
-    image_data = file.read(2048)
-    
-    while image_data:
-        client.send(image_data)
-        image_data = file.read(2048)
-    
-        
-    file.close()
 
-    client.close()
+
+    image_name = "pictures/{}_{}_{}.jpg".format(uid, senddate, sendtime)
+
+    sendImage(image_name)
+
+    plate = listen_for_response()
+    print("num plate", plate)
+    return plate
 
 def led(colour, status):
     GPIO.output(colour, status)
@@ -161,6 +166,26 @@ def checkSignIn(uid):
         return True
 
 
+def listen_for_response():
+    # Start listening for incoming connections
+    s.listen(1)
+
+    # Wait for a connection
+    print("Waiting for connection...")
+    conn, addr = s.accept()
+    print("Connection established from: ", addr)
+    data = conn.recv(1024).decode()
+    print("Received data: ", data)
+    # Close the connection
+    return data
+
+
+def sendImage(path):
+    name = os.path.basename(path)
+    image = {"image": (name, open(path, "rb"), "image/jpeg")}
+    response = requests.post(url, files=image)
+    print(response)
+
 def getfreetype(type_):
     path = "parkingspaces.json"
     query = "?orderBy=\"Free\"&equalTo=\"True\""
@@ -171,7 +196,7 @@ def getfreetype(type_):
         if free[space]["Type"] == type_:
             filtered[space] = free[space]["Location"]
     return filtered
-    
+
 
 def getpreftype(card):
     prefpath = f"rfidcards/{card}/Preference.json"
@@ -209,11 +234,69 @@ def recommendspace(pref, type_):
             mindistspace = num
     return mindistspace
 
+def rfiduserinoutplate(card, inout, plate):
+    date_ = date.today()
+    path = f"rfidcards/{card}/{date_}.json"
+
+    global sendtime
+    sendtime = re.sub("t", ":", sendtime)
+
+    read = authed_session.get(db + path)
+    if read.json() is not None:
+        data = read.json()
+        if "Out" not in list(data.keys()):
+            data["Out"] = []
+        if "In" not in list(data.keys()): #not sure how this could happen
+            data["In"] = []
+
+
+    else:
+        data = {"In":[], "Out":[]}
+
+    if inout == "in":
+
+        data["In"]  += [sendtime+"_"+plate] #data["In"].append(...)
+
+    else:
+        data["Out"] += [sendtime]
+    print("sending back to db for card ",card, ": ", data)
+    resp = authed_session.patch(db + path, json=data)
+
+    if resp.ok:
+        print("Ok")
+    else:
+        print(resp.json())
+        raise
+
+def getrfid(user):
+    path = f"users/{user}/card.json"
+    resp = authed_session.get(db+path)
+    card = resp.json()
+    return card
+
+def numplateentry(plate):
+
+    platepath = "numberplates.json"
+    plateresp = authed_session.get(db+platepath)
+    platedata = plateresp.json()
+    plates = set(platedata.keys())
+    if plate in plates:
+        allowedplate = plate
+        alloweduser = platedata[allowedplate]
+    else:
+        return False #user not allowed in
+
+    # ALLOW USER IN
+    rfid = getrfid(alloweduser)
+    rfiduserinoutplate(rfid, "out", allowedplate)
+    print("allowed")
+    return True
+
 
 def main():
     print("Waiting for RFID/NFC card...")
     led(red_led, high)
-    
+
     while True:
         now = datetime.now().strftime("%H:%M")
         with canvas(device) as draw:
@@ -221,54 +304,55 @@ def main():
             draw.text((90, 8), now, fill="white")
             draw.text((10, 20), title1, fill="white")
             draw.text((10, 30), title2 , fill="white")
-            
+
         # Check if a card is available to read
         uid = pn532.read_passive_target(timeout=0.5)
-        
+
         # Try again if no card is available.
         if uid is None:
             continue
-        
+
         # If card is detected:
         # Set Green LED ON and Red LED OFF
         led(green_led, high)
         led(red_led, low)
-        
+
         # Convert User ID into string format
         uid = [hex(i) for i in uid]
         uid_string = ''.join(format(int(i, 16), '02x') for i in uid)
-        
+
         # Accepted Display
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((90, 8), now, fill="white")
             draw.text((40, 25), title3, fill="white")
         time.sleep(0.5)
-        
+
         # Accepted + Proceed Display
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((90, 8), now, fill="white")
             draw.text((40, 25), title3, fill="white")
             draw.text((44, 35), title4, fill="white")
-        
+
         # Checks Status IN/OUT
         if checkSignIn(uid_string) == True:
             titleIN = "Status: IN"
-            rfiduserinout(uid_string, "in")
+            goingin = True
             pref, type_ = getpreftype(uid_string)
             space = recommendspace(pref, type_)
         else:
             titleIN = "Status: OUT"
             rfiduserinout(uid_string, "out")
-        
+            goingin = False
+
         # Status IN/OUT Displayed
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((90, 8), now, fill="white")
             draw.text((33, 30), titleIN , fill="white")
         time.sleep(1)
-        
+
         # Recommended Space
         if titleIN == "Status: IN":
             with canvas(device) as draw:
@@ -276,10 +360,17 @@ def main():
                 draw.text((90, 8), now, fill="white")
                 draw.text((30, 25), titleRecommended , fill="white")
                 draw.text((40, 35), titleSpace + str(space), fill="white")
-            
-            ANPR(uid_string)
+
+            global sendtime
+            global senddate
+            sendtime = datetime.now().strftime("%H:%M:%S")
+            senddate = date.today()
+
+            plate = ANPR(uid_string)
+            if goingin:
+                rfiduserinoutplate(uid_string, "in", plate)
             time.sleep(2)
-            
+
         led(green_led, low)
         led(red_led, high)
 main()
