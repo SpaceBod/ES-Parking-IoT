@@ -5,20 +5,22 @@ from multiprocessing import Process
 from operator import itemgetter
 import time
 
-saveDir = "/Users/admin/Desktop/piServer/Downloads"
+saveDir = "J://image_receive_test"
 folder_name = "Scanned"
 
 app = Flask(__name__)
-@app.route("/upload", methods=["POST"])
 
+
+@app.route("/upload", methods=["POST"])
 def upload():
     image = request.files['image']
     dir = os.path.join(saveDir, image.filename)
     image.save(dir)
     return "Image uploaded successfully - " + image.filename
 
+
 def runServer():
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=False, port=1004, host='146.169.203.168')
 
 
 def getOldestFile(dir):
@@ -30,31 +32,32 @@ def getOldestFile(dir):
     sorted_files = sorted(file_info, key=itemgetter(1))
     return sorted_files[0][0]
 
+
 def loadANPR():
     while True:
         if len(os.listdir(saveDir)) > 0:
             imgFile = getOldestFile(saveDir)
-            
+
             # RUN PLACE REC FUNCTION
             plateIMG = os.path.join(saveDir, imgFile)
             print(f"Running ANPR on {imgFile}")
             # ----> insert plate function + remove time.sleep(0.5)
             time.sleep(0.5)
-            
+
             # Move processed image to another folder
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
             shutil.move(plateIMG, os.path.join(folder_name, imgFile))
-        
+
         else:
             print("Waiting for images...")
             time.sleep(1)
+
 
 if __name__ == "__main__":
     p1 = Process(target=runServer)
     p2 = Process(target=loadANPR)
     p1.start()
     p2.start()
-
 
 
