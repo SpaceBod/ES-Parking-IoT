@@ -1,21 +1,38 @@
+import os.path
 import socket
 import time
 
-ip = '146.169.178.115'
+ip = '192.168.0.58'
 port = 1003
 
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 def sendImage(ipAddress, portNum, img):
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((ipAddress, portNum))
+    client.connect((ip, port))
     print("Sending")
     image_name = img
-    client.send(image_name.encode())
-    file = open(image_name, 'rb')
-    image_data = file.read(2048)
-    while image_data:
-        client.send(image_data)
-        image_data = file.read(2048)
-    file.close()
-    client.close()
+    print(img)
+    #send the filename
+    client.sendall(image_name.encode('latin-1'))
 
-sendImage(ip, port, '/Users/admin/Desktop/piServer/img/img2.jpg')
+    # Send the file data
+    with open(image_name, 'rb') as f:
+        while True:
+            data = f.read(1024)
+            if not data:
+                break
+            client.sendall(data)
+    client.close()
+    # file = open(image_name, 'rb')
+    # image_data = file.read(2048)
+    # while image_data:
+    #     client.send(image_data)
+    #     image_data = file.read(2048)
+    # file.close()
+
+
+if __name__ == '__main__':
+    # for i in range(111):
+    #     sendImage(ip, port, 'J://images/{}.jpg'.format(i))
+    #     time.sleep(5)
+    sendImage(ip, port, 'J://images/77.jpg')
