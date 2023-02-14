@@ -8,13 +8,31 @@ import time
 import re
 import requests
 import json
-
 from paddleocr import PaddleOCR, draw_ocr
-
 import re
-#  pip3 install google-auth
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
+from flask import Flask, request
+import os
+import shutil
+from multiprocessing import Process
+from operator import itemgetter
+import time
+import socket
+
+pi_ip = '146.169.137.152'
+port = 1050
+
+def send_back_number(ip, port, numberplate):
+    #Send the number plate string back to the pi
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((ip, port))
+            
+    message = numberplate
+    client_socket.sendall(message.encode('utf-8'))
+            
+    client_socket.close()
+
 db = "https://embedded-systems-cf93d-default-rtdb.europe-west1.firebasedatabase.app/"
 keyfile = "C:\\Users\\Caidudu\\PycharmProjects\\ES-SyntaxError\\CameraScripts\\embedded-systems-cf93d-firebase-adminsdk-amky8-e0a50b80ba.json"
 scopes = [
@@ -23,13 +41,13 @@ scopes = [
 ]
 
 credentials = service_account.Credentials.from_service_account_file(keyfile, scopes=scopes)
-
 authed_session = AuthorizedSession(credentials)
 
 
 def result_process(init_plate_number):
     #process OCR output number and put into UK Standard Regex test
-    
+    table = str.maketrans('', '', string.ascii_lowercase)
+    init_plate_number = init_plate_number.translate(table)
     init_plate_number = init_plate_number.replace('\n', '').replace('\r', '').replace(' ', '').replace(':', '')
     init_plate_number = init_plate_number.upper()
     # print('re.findall(r"\d\d\d",init_plate_number[-4:-1]):',re.findall(r"\d\d\d",init_plate_number[-4:-1]))
@@ -138,18 +156,11 @@ def plate_rec(img_path):
             init_plate_number = res_dict['res']['result']
             # print('contor not found! raw data',init_plate_number)
             # print('raw data len',len(init_plate_number))
-            
-            
             # print('raw data [4:6]',init_plate_number[-4:-1])
             
-        
-                
-                
             processed_plate_number = result_process(init_plate_number)
         
-            # print('processed number now is:',processed_plate_number)    
-
-            
+            # print('processed number now is:',processed_plate_number)
             #UK car plate format: two letters, two numbers, a space and three further letters
             if re.findall(r"(^[A-Z]{2}[0-9]{2}\s?[A-Z]{3}$)|(^[A-Z][0-9]{1,3}[A-Z]{3}$)|(^[A-Z]{3}[0-9]{1,3}[A-Z]$)|(^[0-9]{1,4}[A-Z]{1,2}$)|(^[0-9]{1,3}[A-Z]{1,3}$)|(^[A-Z]{1,2}[0-9]{1,4}$)|(^[A-Z]{1,3}[0-9]{1,3}$)|(^[A-Z]{1,3}[0-9]{1,4}$)|(^[0-9]{3}[DX]{1}[0-9]{3}$)",processed_plate_number):
                 # print('regex passed!')
@@ -217,43 +228,67 @@ def plate_rec(img_path):
             else:
                 return 0
                 
-def addnumberplate(filename, numberplate):
-    
-    filename = filename[:-4] #take out .jpg
-    split = filename.split('_')
-    rfid = split[0]
-    date = split[1]
-    time = split[2]
-    time = re.sub("t",":",time)
-    path = "rfidcards/{}/{}/In/.json".format(rfid,date)
-    print(rfid, date, time, path, numberplate)
-    resp = requests.get(db+path)
-    resp = resp.json()
-
-    for num, item in enumerate(resp):
-
-        if item == time:
-            resp[num] = item+"_"+numberplate
-
-    update = {}
-    for i, obj in enumerate(resp):
-        update[i] = obj
-
-    newresp = authed_session.patch(db+path, json=update)
-
-    if newresp.ok:
-        print("added number plate to database")
-    else:
-        print(newresp.json())
-        raise
             
+saveDir = "C:\\Users\\Caidudu\\PycharmProjects\\ES-SyntaxError\\CameraScripts\\loaded_imgs"
+folder_name = "Scanned"
+app = Flask(__name__)
+@app.route("/upload", methods=["POST"])
+def upload():
+    image = request.files['image']
+    dir = os.path.join(saveDir, image.filename)
+    image.save(dir)
+    return "Image uploaded successfully - " + image.filename
 
+
+def runServer():
+    app.run(debug=True, use_reloader=False, port=1004, host='146.169.169.71')
+
+
+def getOldestFile(dir):
+    # Get a list of all files in the directory
+    files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+    # Get the creation time of each file
+    file_info = [(f, os.path.getctime(os.path.join(dir, f))) for f in files]
+    # Sort the files by their creation time
+    sorted_files = sorted(file_info, key=itemgetter(1))
+    return sorted_files[0][0]
+
+
+def loadANPR():
+    while True:
+        if len(os.listdir(saveDir)) > 0:
+            imgFile = getOldestFile(saveDir)
+
+            # RUN PLACE REC FUNCTION
+            plateIMG = os.path.join(saveDir, imgFile)
+            print(f"Running ANPR on {imgFile}")
+            # ----> insert plate function + remove time.sleep(0.5)
+            print(plateIMG)
+            numberplate = plate_rec(plateIMG)
+            print(numberplate)
+            
+            send_back_number(pi_ip, port, str(numberplate))
+           
+            # Move processed image to another folder
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+            shutil.move(plateIMG, os.path.join(folder_name, imgFile))
+
+        else:
+            print("Waiting for images...")
+            time.sleep(1)
 
 if __name__ == '__main__':
-    filename = ('34d6a43e_2023-02-11_18t14t40.png')
-    numberplate = plate_rec(filename)
-    print(numberplate)
-    addnumberplate(filename, numberplate)
+    # filename = ('34d6a43e_2023-02-11_18t14t40.png')
+    # numberplate = plate_rec(filename)
+    # print(numberplate)
+    
+    p1 = Process(target=runServer)
+    p2 = Process(target=loadANPR)
+    p1.start()
+    p2.start()
+
+
 
 
 
