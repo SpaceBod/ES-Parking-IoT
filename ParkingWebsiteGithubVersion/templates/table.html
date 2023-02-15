@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <button id="button" value="button" class="button" style="top:60px;right: 20px;z-index: 1"  onclick="location.href='/map'">Map</button>
+    <button id="loginbutton" value="loginbutton" class="button" style="top:10px;right: 20px;z-index: 1" onclick="location.href='/login'">Sign In/Register</button>
+
+  <table id="data" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Space</th>
+        <th>Free</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  <tfoot>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tfoot>
+  </table>
+
+    <div style="text-align: center">
+<br />&nbsp;<br />
+        Current air quality information:
+        <br>
+        <b>Temperature: {{ stats['temp'] }}&deg;C &emsp; Humidity: {{ stats['humidity'] }}% &emsp; CO2 level: {{ stats['co2'] }}ppm &emsp; TVOC: {{ stats['tvoc'] }}ppb </b>
+</div>
+<br>
+    <div style="text-align: center">Key: 'ppm' = parts per million, 'ppb' = parts per billion, 'TVOC' = total volatile organic compounds</div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    $(document).ready(function () {
+      var table = $('#data').DataTable({
+        ajax: '/api/data',
+        columns: [
+          {data: 'space',},
+          {data: 'free', orderable: true, searchable: true},
+          {data: 'type', orderable: true, searchable: true}
+        ],
+        initComplete: function () {
+            this.api()
+                .columns([1,2])
+                .every(function () {
+                    var column = this;
+                    var select = $('<select><option value=""></option></select>')
+                        .appendTo($(column.footer()).empty())
+                        .on('change', function () {
+                            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+
+                            column.search(val ? '^' + val + '$' : '', true, false).draw();
+                        });
+
+                    column
+                        .data()
+                        .unique()
+                        .sort()
+                        .each(function (d, j) {
+                            select.append('<option value="' + d + '">' + d + '</option>');
+                        });
+                });
+        },
+
+      });
+
+
+    setInterval( function () {
+    table.ajax.reload();
+    }, 30000 ); //update table every 30 seconds
+
+    });
+
+
+
+
+  </script>
+
+
+{% endblock %}
