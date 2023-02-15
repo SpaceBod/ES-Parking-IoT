@@ -1,3 +1,5 @@
+import random
+
 import board
 import busio
 import RPi.GPIO as GPIO
@@ -19,7 +21,7 @@ import os
 import re
 
 # ANPR Server
-ip = '146.169.169.71'
+ip = '192.168.43.52'
 port = 1003
 
 # DB
@@ -48,12 +50,16 @@ camera = PiCamera()
 senddate = 0
 sendtime = 0
 
-url = "http://146.169.169.71:1004/upload"
+buttonpress = False
+
+url = "http://146.169.161.19:1004/upload"
 imgDir = "/pictures"
 # Create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Bind to the port
-s.bind(("146.169.137.152", 1050)) #ip of pi
+get_ip = requests.get("https://api.ipify.org").content.decode('utf8')
+print("Device IP:", get_ip)
+s.bind((str(get_ip), 1050)) #ip of pi
 
 # Add RFID
 def rfiduserinout(card, inout):
@@ -63,7 +69,7 @@ def rfiduserinout(card, inout):
     sendtime = datetime.now().strftime("%H:%M:%S")
     path = f"rfidcards/{card}/{senddate}.json"
 
-    read = requests.get(db + path)
+    read = authed_session.get(db + path)
 
     if read.json() is not None:
         data = read.json()
@@ -86,18 +92,25 @@ def rfiduserinout(card, inout):
         data["Out"].append(sendtime)
 
     #print(data)
-    resp = requests.put(db + path, json=data)
+    resp = authed_session.put(db + path, json=data)
 
     if resp.ok:
         print("Ok")
     else:
         raise
 
+def button_callback(channel):
+    global buttonpress
+    buttonpress = True
+    print("Button pressed.")
+
 # LEDs
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(27,GPIO.OUT)
 GPIO.setup(17,GPIO.OUT)
+GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(18,GPIO.RISING,callback=button_callback, bouncetime=1000) # Setup event on pin 7 (GPIO 4) rising edge
 red_led = 17
 green_led = 27
 high = GPIO.HIGH
@@ -122,6 +135,9 @@ title1 = 'Welcome!'
 title2 = 'Please scan ID...'
 title3 = 'ACCEPTED'
 title4 = 'PROCEED'
+title5 = 'GOODBYE!'
+titleNotAllowed1 = 'NUMBER PLATE'
+titleNotAllowed2 = 'NOT IN SYSTEM'
 titleIN = 'Status: IN'
 titleRecommended = 'RECOMMENDED'
 titleSpace = 'SPACE:'
@@ -189,7 +205,7 @@ def sendImage(path):
 def getfreetype(type_):
     path = "parkingspaces.json"
     query = "?orderBy=\"Free\"&equalTo=\"True\""
-    resp = requests.get(db+path+query)
+    resp = authed_session.get(db+path+query)
     free = resp.json()
     filtered = {}
     for space in free:
@@ -284,13 +300,15 @@ def numplateentry(plate):
         allowedplate = plate
         alloweduser = platedata[allowedplate]
     else:
-        return False #user not allowed in
+        print("not allowed in")
+        return False, None #user not allowed in
 
     # ALLOW USER IN
     rfid = getrfid(alloweduser)
-    rfiduserinoutplate(rfid, "out", allowedplate)
     print("allowed")
-    return True
+    return True, rfid
+
+
 
 
 def main():
@@ -307,6 +325,76 @@ def main():
 
         # Check if a card is available to read
         uid = pn532.read_passive_target(timeout=0.5)
+
+        #if button is pressed for ANPR:
+        global buttonpress
+        global sendtime
+        global senddate
+        signin = False
+        if buttonpress:
+            sendtime = datetime.now().strftime("%H:%M:%S")
+            senddate = date.today()
+            plate = ANPR(str(random.randrange(1,10000))) #get plate
+            allowed, rfid = numplateentry(plate)
+            if allowed:
+                signin = checkSignIn(plate)
+            
+            if allowed and signin: #if allowed in and entering
+                rfiduserinoutplate(rfid, "in", plate)
+                led(green_led, high)
+                led(red_led, low)
+                pref, type_ = getpreftype(rfid)
+                space = recommendspace(pref, type_) #get recommended space
+
+                #Accepted Display
+                with canvas(device) as draw:
+                    draw.rectangle(device.bounding_box, outline="white", fill="black")
+                    draw.text((90, 8), now, fill="white")
+                    draw.text((40, 25), title3, fill="white")
+                time.sleep(0.5)
+                # Accepted + Proceed Display
+                with canvas(device) as draw:
+                    draw.rectangle(device.bounding_box, outline="white", fill="black")
+                    draw.text((90, 8), now, fill="white")
+                    draw.text((40, 25), title3, fill="white")
+                    draw.text((44, 35), title4, fill="white")
+                time.sleep(1)
+                # Recommend space
+                with canvas(device) as draw:
+                    draw.rectangle(device.bounding_box, outline="white", fill="black")
+                    draw.text((90, 8), now, fill="white")
+                    draw.text((30, 25), titleRecommended, fill="white")
+                    draw.text((40, 35), titleSpace + str(space), fill="white")
+                time.sleep(5)
+
+            elif allowed and not signin: # Allowed and exiting
+                print('Exiting')
+                led(green_led, high)
+                led(red_led, low)
+                rfiduserinout(rfid, "out")
+                with canvas(device) as draw:
+                    draw.rectangle(device.bounding_box, outline="white", fill="black")
+                    draw.text((90, 8), now, fill="white")
+                    draw.text((40, 25), title4, fill="white")
+                    draw.text((44, 35), title5, fill="white")
+                time.sleep(5)
+
+            elif not allowed: # not allowed in
+                print('Not Permitted')
+                with canvas(device) as draw:
+                    draw.rectangle(device.bounding_box, outline="white", fill="black")
+                    draw.text((90, 8), now, fill="white")
+                    draw.text((22, 25), titleNotAllowed1, fill="white")
+                    draw.text((20, 35), titleNotAllowed2, fill="white")
+                time.sleep(3)
+
+            #set button to false at end
+
+            buttonpress = False
+            led(green_led, low)
+            led(red_led, high)
+            continue
+
 
         # Try again if no card is available.
         if uid is None:
@@ -361,13 +449,12 @@ def main():
                 draw.text((30, 25), titleRecommended , fill="white")
                 draw.text((40, 35), titleSpace + str(space), fill="white")
 
-            global sendtime
-            global senddate
             sendtime = datetime.now().strftime("%H:%M:%S")
             senddate = date.today()
 
             plate = ANPR(uid_string)
             if goingin:
+                print("here")
                 rfiduserinoutplate(uid_string, "in", plate)
             time.sleep(2)
 
