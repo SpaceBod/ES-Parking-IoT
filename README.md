@@ -1,7 +1,7 @@
 # ES-SyntaxError
 ## Workspace for Embedded Systems
 
-Folders used in final code: [RasPi Scripts](RasPi%20Scripts), [ANPR Scripts](ANPR%20Scripts), [Parking Portal](Parking%20Portal).
+Folders used in final code: [RaspPi Scripts](RaspPi%20Scripts), [ANPR Scripts](ANPR%20Scripts), [Parking Portal](Parking%20Portal).
 
 Code used for marketing website is in folder [Marketing Website](Marketing%20Website).
 
