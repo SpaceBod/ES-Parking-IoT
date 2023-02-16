@@ -1,9 +1,12 @@
+# import libraries
 import requests
 import os
 
+# set URL and image directory
 url = "http://127.0.0.1:5000/upload"
 imgDir = "/Users/admin/Desktop/piServer/img"
 
+# define the function to send image
 def sendImage(path):
     name = os.path.basename(path)
     image = {"image": (name, open(path, "rb"), "image/jpeg")}
