@@ -1,6 +1,5 @@
 # ES-SyntaxError
 Workspace for Embedded Systems
 
-
-Test folders (not in use in final design):
-SensorScripts, Databases
+Folders used in final code: [RasPiScripts](RasPiScripts), [CameraScripts](CameraScripts), [ParkingWebsiteGithubVersion](ParkingWebsiteGithubVersion)
+Code used for marketing website is in folder [ShowcaseWebsite](ShowcaseWebsite)
