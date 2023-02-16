@@ -1,3 +1,4 @@
+# import libraries
 import board
 import busio
 import adafruit_tca9548a
@@ -7,7 +8,7 @@ import smbus2
 import adafruit_vl53l0x
 import adafruit_si7021
 
-
+# define database parameters
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
 db = "https://embedded-systems-cf93d-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -17,6 +18,7 @@ scopes = [
     "https://www.googleapis.com/auth/firebase.database"
 ]
 
+# use service account credentials to access the database
 credentials = service_account.Credentials.from_service_account_file(keyfile, scopes=scopes)
 
 authed_session = AuthorizedSession(credentials)
@@ -42,15 +44,15 @@ si7021_READ_HUMIDITY = 0xF5
 
 bus = smbus2.SMBus(1)
 
-#Set up a write transaction that sends the command to measure temperature
+# set up a write transaction that sends the command to measure temperature
 cmd_meas_temp = smbus2.i2c_msg.write(si7021_ADD,[si7021_READ_TEMPERATURE])
 
 cmd_meas_humd = smbus2.i2c_msg.write(si7021_ADD,[si7021_READ_HUMIDITY])
 
-#Set up a read transaction that reads two bytes of data
+# set up a read transaction that reads two bytes of data
 read_result = smbus2.i2c_msg.read(si7021_ADD,4)
 
-# The function to change the status of parking spots in the database
+# define the function to change the status of parking spots in the database
 def updatefree(space, status):
     path = f"parkingspaces/{space}.json"
 
@@ -67,7 +69,7 @@ def updatefree(space, status):
         raise
 
 
-# The function to upload temperature and humidity
+# define the function to upload temperature and humidity
 def statstodb(temp, hum):
     path = "stats.json"
     data = {"temp": str(temp), "humidity": str(hum)}
@@ -82,7 +84,7 @@ flag_1 = 'true'
 flag_5 = 'true'
 flag_6 = 'true'
 
-# read sensor data
+# read VL53L0X data and update parking spots vacancy status
 while True:
     flag1 = flag_1
     flag5 = flag_5
@@ -129,32 +131,34 @@ while True:
             updatefree(6, flag_6)
     
     
-    #Set up a write transaction that sends the command to measure temperature
+    # set up a write transaction that sends the command to measure temperature
     cmd_meas_temp = smbus2.i2c_msg.write(si7021_ADD,[si7021_READ_TEMPERATURE])
-    #Set up a read transaction that reads two bytes of data
+    # set up a read transaction that reads two bytes of data
     read_temperature = smbus2.i2c_msg.read(si7021_ADD,2)
-    #Execute the two transactions with a small delay between them
+    # execute the two transactions with a small delay between them
     bus.i2c_rdwr(cmd_meas_temp)
     time.sleep(0.1)
     bus.i2c_rdwr(read_temperature)
-    #convert the result to an int
+    # convert the result to an int
     temperature = int.from_bytes(read_temperature.buf[0]+read_temperature.buf[1],'big')
     celcius = round((temperature*175.72)/65536 -46.85, 1)
 
-    #Set up a write transaction that sends the command to measure humidity
+    # set up a write transaction that sends the command to measure humidity
     cmd_meas_humidity = smbus2.i2c_msg.write(si7021_ADD,[si7021_READ_HUMIDITY])
-    #Set up a read transaction that reads two bytes of data
+    # set up a read transaction that reads two bytes of data
     read_humidity = smbus2.i2c_msg.read(si7021_ADD,2)
-    #Execute the two transactions with a small delay between them
+    # execute the two transactions with a small delay between them
     bus.i2c_rdwr(cmd_meas_temp)
     time.sleep(0.1)
     bus.i2c_rdwr(read_humidity)
-    #convert the result to an int
+    # read the humidity from Si7021 sensor using the I2C protocol
     humidity = int.from_bytes(read_humidity.buf[0]+read_humidity.buf[1],'big')
+    # round the result to 1 decimal place
     humidity_normal = round((humidity*125)/65536 - 14, 1)
 
 
     print("Temp: ", celcius, "\tHumidity: ", humidity_normal)
+    # update the temperatue and humidity data into database
     statstodb(celcius, humidity_normal)
 
     
