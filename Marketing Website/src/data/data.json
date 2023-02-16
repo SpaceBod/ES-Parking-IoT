@@ -1,0 +1,143 @@
+{
+  "Header": {
+    "title": "EzPark",
+    "paragraph": "Showcasing real-time availability of parking spots online for enhanced convenience and efficiency."
+  },
+  "About": {
+    "paragraph1": "This product, a smart parking solution, uses cutting-edge technology to enhance the efficiency and convenience of parking management.",
+    "paragraph2": "By utilising sensors, automatic number plate recognition, and real-time data analysis, this product is able to monitor the availability of parking spots in real-time and provide this information to users through online platforms or mobile applications.",
+    "paragraph3": "If you are a commercial entity looking to build or upgrade a car park, this product enables the easy installation of smart features. The package you will receive contains all the necessary hardware and code, as detailed in the Technologies section, resulting in minimal overhead compared to other commercially available solutions. A high level of flexibility was key in the design of our system meaning EzPark can be adapted for use in all car park layouts, and RFID, ANPR or both can be used for entry and exit. We have carefully devised an intuitive interface for users of the car park to create a frustration-free experience.",
+    "paragraph4": "Upon purchasing our product, we will grant you access to your car park's database which can only be accessed by your security certificates, and we can provide advice on installing the system. Minimal maintenance is required after setup, so you can be worry-free that everything is running smoothly and reliably. So get in contact - EzPark is the easy way to bring your car park into the 21st century!",
+    "Why": [
+      "Innovative Technology",
+      "Real-time Parking Availability",
+      "Increased Parking Efficiency"
+    ],
+    "Why2": [
+      "User-friendly Experience",
+      "Cost Effective Solutions",
+      "Improved Parking Experience"
+    ]
+  },
+  "Gallery": [
+    {
+      "title": "RFID & Air Quality Sensor",
+      "largeImage": "img/portfolio/01-large.jpg",
+      "smallImage": "img/portfolio/01-small.jpg"
+    },
+    {
+      "title": "I2C Multiplexer",
+      "largeImage": "img/portfolio/02-large.jpg",
+      "smallImage": "img/portfolio/02-small.jpg"
+    },
+    {
+      "title": "ToF Sensors",
+      "largeImage": "img/portfolio/03-large.jpg",
+      "smallImage": "img/portfolio/03-small.jpg"
+    },
+    {
+      "title": "8MP Pi Camera",
+      "largeImage": "img/portfolio/04-large.jpg",
+      "smallImage": "img/portfolio/04-small.jpg"
+    },
+    {
+      "title": "Gate System",
+      "largeImage": "img/portfolio/05-large.jpg",
+      "smallImage": "img/portfolio/05-small.jpg"
+    },
+    {
+      "title": "Parking Sensor Node",
+      "largeImage": "img/portfolio/06-large.jpg",
+      "smallImage": "img/portfolio/06-small.jpg"
+    },
+    {
+      "title": "Parking Space Database",
+      "largeImage": "img/portfolio/07-large.jpg",
+      "smallImage": "img/portfolio/07-small.jpg"
+    },
+    {
+      "title": "OLed Gate Display",
+      "largeImage": "img/portfolio/08-large.jpg",
+      "smallImage": "img/portfolio/08-small.jpg"
+    },
+    {
+      "title": "Parking Map",
+      "largeImage": "img/portfolio/09-large.jpg",
+      "smallImage": "img/portfolio/09-small.jpg"
+    }
+  ],
+  "Services": [
+    {
+      "icon": "fa fa-flash",
+      "name": "Hardware",
+      "text": "The system is created using a Raspberry Pi Zero W and sensors for rapid product development and deployment, and to keep costs down. The sensors used are: VL53LOx Time-of-Flight, PN532 RFID Reader, CCS811 Air Quality Sensor and a camera. The choice of hardware allows for easy expansion of the system to as many spaces as is required; simply adding more VL53L0x sensors and some small code modifications are needed. "
+    },
+    {
+      "icon": "fa fa-database",
+      "name": "Realtime Database",
+      "text": "A realtime NoSQL database hosted on Google Firebase is used to store and serve up-to-date information on space availability and type to the website. The database requires a private key for access and is accessed using HTTPS, ensuring security of user information which is stored to allow automatic entry and history lookup, showing times of entry and exit along with the number plate of the car. "
+    },
+    {
+      "icon": "fa fa-sitemap",
+      "name": "Environmental Sensors",
+      "text": "The air quality information in the car park is continuously monitored through a sophisticated system. The sensors installed in the parking lot communicate with the Raspberry Pi using I2C, checking the temperature, humidity, CO2 levels, and Total Volatile Organic Compounds (TVOC) levels. The system continuously tracks this information and sends it to the website. Visitors to the parking lot can easily access the information and make informed decisions based on it. With this system, the air quality is kept under control, and the visitors' health is protected."
+    },
+    {
+      "icon": "fa fa-camera",
+      "name": "ANPR",
+      "text": "Automatic Number Plate Recognition is employed to facilitate vehicle identification for access verification purposes. In the event that a card is utilised for entry, the system retrieves the corresponding number plate to provide a comprehensive user history. The entire recognition process is conducted on a server using state-of-the-art deep learning algorithms with TensorFlow, which enables plate detection and OCR (Optical Character Recognition) for seamless extraction of the plate number. It is worth mentioning that we did not use the RNN model commonly used by most deep learning car plate detecting systems - they are bulky and difficult to run smoothly on embedded systems. Instead, we have chosen a new light-weight CNN model. It is robust and efficient, and more suitable for running on embedded systems. To ensure the image receiving function on the server is not impeded during the number plate recognition process, we have incorporated the use of multiprocessing functionality in our server-side code. This enables multiple processes to run simultaneously and without interference, thereby optimising the overall performance of the system."
+    }
+  ],
+  "Team": [
+    {
+      "img": "img/team/01.jpg",
+      "name": "Sian, S",
+      "job": "Developer"
+    },
+    {
+      "img": "img/team/02.jpg",
+      "name": "Cai, X",
+      "job": "Developer"
+    },
+    {
+      "img": "img/team/03.jpg",
+      "name": "Wang, J",
+      "job": "Developer"
+    },
+    {
+      "img": "img/team/04.jpg",
+      "name": "Fenocchi, G",
+      "job": "Developer"
+    }
+  ],
+  "Contact": {
+    "address": "South Kensington Campus, London SW7 2AZ, UK",
+    "phone": "+44 (0)20 7589 5111",
+    "email": "info@company.com",
+    "facebook": "https://www.facebook.com/imperialcollegelondon",
+    "twitter": "https://twitter.com/imperialcollege",
+    "youtube": "https://www.youtube.com/user/imperialcollegevideo"
+  },
+  "Features": [
+    {
+      "icon": "fa fa-rss-square",
+      "title": "ID Card System",
+      "text": "RFID scanning for efficient user entry and exit tracking."
+    },
+    {
+      "icon": "fa fa-bar-chart",
+      "title": "Monitoring",
+      "text": "An online viewer for convenient monitoring of parking spot availability and parking statistics."
+    },
+    {
+      "icon": "fa  fa-map-marker",
+      "title": "Recommendations",
+      "text": "Recommendation of parking spots for optimized parking experience."
+    },
+    {
+      "icon": "fa fa-camera",
+      "title": "ANPR",
+      "text": "Automatic number plate recognition for quick and accurate vehicle identification."
+    }
+  ]
+}
