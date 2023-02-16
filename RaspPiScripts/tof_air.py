@@ -1,3 +1,4 @@
+# import libraries
 import board
 import busio
 import adafruit_tca9548a
@@ -6,7 +7,7 @@ import json
 from smbus2 import SMBus
 import adafruit_vl53l0x
 
-
+# define database parameters
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
 db = "https://embedded-systems-cf93d-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -16,10 +17,12 @@ scopes = [
     "https://www.googleapis.com/auth/firebase.database"
 ]
 
+# use service account credentials to access the database
 credentials = service_account.Credentials.from_service_account_file(keyfile, scopes=scopes)
 
 authed_session = AuthorizedSession(credentials)
 
+# define the sensor register addresses
 STATUS_REG = 0x00
 MEAS_MODE_REG = 0x01
 ALG_RESULT_DATA_REG = 0x02
@@ -46,13 +49,13 @@ tca0 = tca[0]
 tca1 = tca[1]
 tca2 = tca[2]
 
-# initiate VL53L0X sensor
+# initiate VL53L0X sensors
 vl53_0 = adafruit_vl53l0x.VL53L0X(tca0)
 vl53_1 = adafruit_vl53l0x.VL53L0X(tca1)
 vl53_2 = adafruit_vl53l0x.VL53L0X(tca2)
 
 
-# The function to change the status of parking spots in the database
+# define the function to update the status of parking spaces in the database
 def updatefree(space, status):
     path = f"parkingspaces/{space}.json"
 
@@ -69,7 +72,7 @@ def updatefree(space, status):
         raise
 
 
-# The function to upload temperature and humidity
+# define the function to upload air quality data
 def statstodb(co2, tvoc):
     path = "stats.json"
     data = {"co2": str(co2), "tvoc": str(tvoc)}
@@ -79,6 +82,8 @@ def statstodb(co2, tvoc):
     else:
         print(resp.json())
 
+        
+# define the function to retrieve temperature and humidity data
 def gettemphum():
     path = "stats.json"
     resp = authed_session.get(db+path)
@@ -87,6 +92,7 @@ def gettemphum():
     hum = respjson['humidity']
     return float(temp), float(hum)
 
+# set up the air quality sensor
 def startup():
     bus.write_i2c_block_data(address, APP_START_REG, []) #start into firmware mode
     meas_mode = (ONE_SECOND << 4) | (0 << 3)  # every 1 second, dont want interrupts
@@ -116,6 +122,7 @@ def ready():
     else:
         return True
 
+# read data from the air quality sensor using the I2C communication protocol
 def read():
     try:
         data = bus.read_i2c_block_data(address, ALG_RESULT_DATA_REG, 8)
@@ -167,7 +174,7 @@ oldco2 = 0
 oldtvoc = 0
 startup() #startup air quality sensor
 
-# read sensor data
+# read VL53L0X data and update the vacancy status of the parking spots
 while True:
     flag0 = flag_0
     flag1 = flag_1
@@ -215,8 +222,10 @@ while True:
         if flag_2 != flag2:
             print('3 becomes vacant')
             updatefree(3, flag_2)
-
+    
+    # read temperature and humidity data from database
     curr_temp, curr_hum = gettemphum()
-    oldco2, oldtvoc = airquality(curr_hum, curr_temp, oldco2, oldtvoc) #change 50 for current humidity and 25 for current temp
+    # update the air quality data into database
+    oldco2, oldtvoc = airquality(curr_hum, curr_temp, oldco2, oldtvoc)
 
     time.sleep(5)
